@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import CreateTaskModal from "@/app/components/CreateTaskModal";
 
 // State enums
 const STATES = {
@@ -21,7 +22,19 @@ const SHORT_BREAK = 1 * 60; // 1 menit
 const LONG_BREAK = 3 * 60; // 3 menit
 const DEFAULT_CYCLE = 2;
 
-const PomoTimer = () => {
+const PRIORITY_COLOR = {
+  High: "#D47D7D",
+  Medium: "#E3D47D",
+  Low: "#7DD4A0",
+};
+
+const PomoTimer = ({
+  activeTask,
+  setActiveTask,
+}: {
+  activeTask?: any;
+  setActiveTask?: (task: any) => void;
+}) => {
   // State
   const [state, setState] = useState<StateType>("INITIAL_FOCUS_TIME");
   const [hasTask, setHasTask] = useState(false);
@@ -31,6 +44,7 @@ const PomoTimer = () => {
   const [maxCycle, setMaxCycle] = useState(DEFAULT_CYCLE);
   const [breakType, setBreakType] = useState<BreakType>("short");
   const [showToast, setShowToast] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Format detik ke mm:ss
@@ -96,21 +110,42 @@ const PomoTimer = () => {
     }
   }, [timer, state, breakType, cycle, maxCycle]);
 
+  // Sync with activeTask from parent
+  useEffect(() => {
+    if (activeTask) {
+      setHasTask(true);
+      setTaskName(activeTask.name);
+      setState("INITIAL_FOCUS_TIME");
+    } else {
+      setHasTask(false);
+    }
+  }, [activeTask]);
+
   // Taskbar
   const renderTaskBar = () => {
     if (!hasTask) {
       return (
         <div className="w-full max-w-[340px] bg-[#6C4EC6] rounded-xl flex items-center px-6 py-3 mb-8 gap-3">
           <span className="text-white text-base flex-1">Create new task</span>
-          <button className="bg-none border-none cursor-pointer p-0 flex items-center">
+          <button
+            className="bg-none border-none cursor-pointer p-0 flex items-center"
+            onClick={() => setShowCreateTask(true)}
+          >
             <Image src="/edit-2.svg" alt="edit" width={24} height={24} />
           </button>
         </div>
       );
     }
+    const circleColor =
+      activeTask && activeTask.priority
+        ? PRIORITY_COLOR[activeTask.priority as keyof typeof PRIORITY_COLOR]
+        : "#7B61FF";
     return (
       <div className="w-full max-w-[340px] bg-[#292945] rounded-xl flex items-center px-4 py-3 mb-8 gap-3">
-        <span className="w-5 h-5 border-2 border-[#7B61FF] rounded-full inline-block"></span>
+        <span
+          className="w-5 h-5 border-2 rounded-full inline-block"
+          style={{ borderColor: circleColor }}
+        ></span>
         <span className="text-white text-base font-semibold flex-1">
           {taskName}
         </span>
@@ -275,19 +310,25 @@ const PomoTimer = () => {
   };
 
   return (
-    <div className="w-[100vw] max-w-[430px] min-h-[100vh] mx-auto bg-[#232336] rounded-[32px] shadow-lg p-8 pt-8 pb-4 flex flex-col items-center relative sm:rounded-none sm:w-full sm:p-3">
-      <div className="text-white text-[1.3rem] font-bold text-center mb-6">
-        Pomodoro timer
-      </div>
-      {renderTaskBar()}
-      {renderTimer()}
-      {renderButtonArea()}
-      {showToast && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 bg-[#7B61FF] text-white px-6 py-3 rounded-2xl shadow-lg font-semibold text-base z-50 animate-fade-in">
-          Yey kamu sudah berhasil fokus
+    <>
+      <div className="w-[100vw] max-w-[430px] h-full mx-auto p-8 pt-8 pb-4 flex flex-col items-center relative sm:rounded-none sm:w-full sm:p-3">
+        <div className="text-white text-[1.3rem] font-bold text-center mb-6 mt-5">
+          Pomodoro timer
         </div>
-      )}
-    </div>
+        {renderTaskBar()}
+        {renderTimer()}
+        {renderButtonArea()}
+        {showToast && (
+          <div className="fixed left-1/2 -translate-x-1/2 bottom-24 bg-[#7B61FF] text-white px-6 py-3 rounded-2xl shadow-lg font-semibold text-base z-50 animate-fade-in">
+            Yey kamu sudah berhasil fokus
+          </div>
+        )}
+      </div>
+      <CreateTaskModal
+        open={showCreateTask}
+        onClose={() => setShowCreateTask(false)}
+      />
+    </>
   );
 };
 

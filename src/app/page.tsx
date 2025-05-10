@@ -14,7 +14,7 @@ function BottomNav({
   setActiveMenu: (m: string) => void;
 }) {
   return (
-    <div className="w-full max-w-[430px] sticky bottom-0 left-0 z-40 bg-[#232336] rounded-b-[32px] flex justify-center items-center mx-auto">
+    <div className="w-full max-w-[430px] sticky bottom-0 left-0 z-40 bg-[#1F1B2E] flex justify-center items-center mx-auto">
       <div className="w-full max-w-[340px] flex justify-between items-center pt-3 pb-6">
         <button
           className={`flex flex-col items-center text-sm gap-1 focus:outline-none`}
@@ -99,13 +99,18 @@ function BottomNav({
 
 export default function Home() {
   const [activeMenu, setActiveMenu] = useState("Pomodoro");
+  const [activeTask, setActiveTask] = useState<any>(null);
 
   const renderContent = () => {
     switch (activeMenu) {
       case "Pomodoro":
-        return <PomoTimer />;
+        return (
+          <PomoTimer activeTask={activeTask} setActiveTask={setActiveTask} />
+        );
       case "Manage":
-        return <Manage />;
+        return (
+          <Manage setActiveMenu={setActiveMenu} setActiveTask={setActiveTask} />
+        );
       case "Report":
         return <Report />;
       case "Settings":
@@ -116,7 +121,7 @@ export default function Home() {
   };
 
   return (
-    <div className="w-[100vw] max-w-[430px] min-h-[100vh] mx-auto bg-[#232336] rounded-[32px] shadow-lg flex flex-col items-center relative sm:rounded-none sm:w-full">
+    <div className="w-[100vw] max-w-[430px] h-screen mx-auto bg-[#1F1B2E] flex flex-col items-center sm:rounded-none sm:w-full overflow-hidden">
       <div className="flex-1 w-full flex flex-col items-center pb-28">
         {renderContent()}
       </div>
