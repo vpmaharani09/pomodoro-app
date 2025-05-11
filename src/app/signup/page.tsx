@@ -13,6 +13,7 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -96,6 +97,19 @@ export default function SignUp() {
             Sign Up
           </button>
           {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
+          <button
+            type="button"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+            tabIndex={-1}
+            onClick={() => setShowPassword((v) => !v)}
+          >
+            <img
+              src={showPassword ? "/eye.svg" : "/eye-slash.svg"}
+              alt={showPassword ? "Hide password" : "Show password"}
+              width={22}
+              height={22}
+            />
+          </button>
         </form>
         <div className="flex items-center w-full max-w-[340px] my-4">
           <div className="flex-1 h-px bg-[#E3E3E3]" />

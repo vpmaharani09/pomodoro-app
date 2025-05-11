@@ -10,6 +10,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -60,20 +61,35 @@ export default function SignIn() {
         >
           <input
             className="w-full max-w-[340px] bg-[#E3E3E3] text-[#232336] rounded-xl px-4 py-3 mb-4 outline-none font-semibold placeholder-[#7B61FF]"
-            placeholder="Username or Email"
+            placeholder="Email"
             type="text"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <input
-            className="w-full max-w-[340px] bg-[#E3E3E3] text-[#232336] rounded-xl px-4 py-3 mb-4 outline-none font-semibold placeholder-[#7B61FF]"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="w-full max-w-[340px] relative mb-4">
+            <input
+              className="w-full bg-[#E3E3E3] text-[#232336] rounded-xl px-4 py-3 outline-none font-semibold placeholder-[#7B61FF] pr-12"
+              placeholder="Password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+              tabIndex={-1}
+              onClick={() => setShowPassword((v) => !v)}
+            >
+              <img
+                src={showPassword ? "/eye.svg" : "/eye-slash.svg"}
+                alt={showPassword ? "Hide password" : "Show password"}
+                width={22}
+                height={22}
+              />
+            </button>
+          </div>
           <button
             className="w-full max-w-[340px] bg-[#7B61FF] text-white text-lg font-semibold rounded-full py-4 mb-4 flex items-center justify-center gap-2 shadow-md"
             type="submit"
