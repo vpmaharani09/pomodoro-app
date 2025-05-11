@@ -33,13 +33,35 @@ const Settings = () => {
   const [dropdown, setDropdown] = useState<
     null | "focus" | "short" | "long" | "cycle"
   >(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Simulasi fetch dari backend (bisa diganti nanti)
+  // Fetch settings from API on mount
   useEffect(() => {
-    // setTimeout(() => {
-    //   setInitial({ focus: 25, short: 5, long: 15, cycle: 4 });
-    //   setFocus(25); setShort(5); setLong(15); setCycle(4);
-    // }, 500);
+    const fetchSettings = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/settings", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to fetch settings");
+        const data = await res.json();
+        setInitial(data);
+        setFocus(data.focus);
+        setShort(data.short);
+        setLong(data.long);
+        setCycle(data.cycle);
+        console.log(data);
+      } catch (e: any) {
+        setError(e.message || "Failed to fetch settings");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
   }, []);
 
   // Cek perubahan
@@ -56,9 +78,32 @@ const Settings = () => {
     setLong(initial.long);
     setCycle(initial.cycle);
   };
-  const handleSave = () => {
-    setInitial({ focus, short, long, cycle });
-    // TODO: Simpan ke backend nanti
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ focus, short, long, cycle }),
+      });
+      console.log("ini res ", res);
+      console.log(res);
+      if (!res.ok) throw new Error("Failed to save settings");
+      const data = await res.json();
+      console.log("Result");
+      console.log(data);
+      setInitial(data);
+    } catch (e: any) {
+      console.log(e);
+      setError(e.message || "Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
   };
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -77,73 +122,106 @@ const Settings = () => {
             Logout
           </button>
         </div>
-        {/* Field */}
-        <div className="w-full flex flex-col gap-6 mb-10">
-          <button
-            className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
-            onClick={() => setDropdown("focus")}
-          >
-            <span className="font-normal text-white text-[14px] font-poppins">
-              Focus time
-            </span>
-            <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
-              {focus} min
-              <img src="/arrow-down.svg" alt="arrow" width={20} height={20} />
-            </span>
-          </button>
-          <button
-            className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
-            onClick={() => setDropdown("short")}
-          >
-            <span className="font-normal text-white text-[14px] font-poppins">
-              Short break
-            </span>
-            <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
-              {short} min
-              <img src="/arrow-down.svg" alt="arrow" width={20} height={20} />
-            </span>
-          </button>
-          <button
-            className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
-            onClick={() => setDropdown("long")}
-          >
-            <span className="font-normal text-white text-[14px] font-poppins">
-              Long break
-            </span>
-            <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
-              {long} min
-              <img src="/arrow-down.svg" alt="arrow" width={20} height={20} />
-            </span>
-          </button>
-          <button
-            className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
-            onClick={() => setDropdown("cycle")}
-          >
-            <span className="font-normal text-white text-[14px] font-poppins">
-              Pomodoro cycle
-            </span>
-            <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
-              {cycle} cycle
-              <img src="/arrow-down.svg" alt="arrow" width={20} height={20} />
-            </span>
-          </button>
-        </div>
-        {/* Tombol Cancel & Save */}
-        {isChanged && (
-          <div className="w-full flex justify-between items-center mt-6 gap-4">
-            <button
-              className="flex-1 py-4 rounded-full bg-transparent text-white font-semibold text-lg border-none"
-              onClick={handleCancel}
-            >
-              Cancel
-            </button>
-            <button
-              className="flex-1 py-4 rounded-full bg-[#7B61FF] text-white font-semibold text-lg shadow"
-              onClick={handleSave}
-            >
-              Save
-            </button>
+        {loading ? (
+          <div className="text-white text-center py-10">
+            Loading settings...
           </div>
+        ) : (
+          <>
+            {/* Field */}
+            <div className="w-full flex flex-col gap-6 mb-10">
+              <button
+                className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
+                onClick={() => setDropdown("focus")}
+              >
+                <span className="font-normal text-white text-[14px] font-poppins">
+                  Focus time
+                </span>
+                <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
+                  {focus} min
+                  <img
+                    src="/arrow-down.svg"
+                    alt="arrow"
+                    width={20}
+                    height={20}
+                  />
+                </span>
+              </button>
+              <button
+                className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
+                onClick={() => setDropdown("short")}
+              >
+                <span className="font-normal text-white text-[14px] font-poppins">
+                  Short break
+                </span>
+                <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
+                  {short} min
+                  <img
+                    src="/arrow-down.svg"
+                    alt="arrow"
+                    width={20}
+                    height={20}
+                  />
+                </span>
+              </button>
+              <button
+                className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
+                onClick={() => setDropdown("long")}
+              >
+                <span className="font-normal text-white text-[14px] font-poppins">
+                  Long break
+                </span>
+                <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
+                  {long} min
+                  <img
+                    src="/arrow-down.svg"
+                    alt="arrow"
+                    width={20}
+                    height={20}
+                  />
+                </span>
+              </button>
+              <button
+                className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
+                onClick={() => setDropdown("cycle")}
+              >
+                <span className="font-normal text-white text-[14px] font-poppins">
+                  Pomodoro cycle
+                </span>
+                <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
+                  {cycle} cycle
+                  <img
+                    src="/arrow-down.svg"
+                    alt="arrow"
+                    width={20}
+                    height={20}
+                  />
+                </span>
+              </button>
+            </div>
+            {/* Tombol Cancel & Save */}
+            {isChanged && (
+              <div className="w-full flex justify-between items-center mt-6 gap-4">
+                <button
+                  className="flex-1 py-4 rounded-full bg-transparent text-white font-semibold text-lg border-none"
+                  onClick={handleCancel}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 py-4 rounded-full bg-[#7B61FF] text-white font-semibold text-lg shadow"
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            )}
+            {error && (
+              <div className="text-red-500 text-center mt-4">{error}</div>
+            )}
+          </>
         )}
       </div>
       {/* Modal Dropdown */}
