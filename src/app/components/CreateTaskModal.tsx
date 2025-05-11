@@ -390,3 +390,4 @@ const CreateTaskModal = ({
 };
 
 export default CreateTaskModal;
+export { WheelPickerModal };

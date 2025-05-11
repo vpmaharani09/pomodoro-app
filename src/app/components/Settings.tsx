@@ -1,7 +1,194 @@
-const Settings = () => (
-  <div className="flex flex-col items-center justify-center w-full h-full py-20">
-    <h2 className="text-white text-2xl font-bold mb-4">Settings</h2>
-    <p className="text-[#b3b3c5]">Ini adalah halaman Settings.</p>
-  </div>
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+// Import WheelPickerModal secara dinamis agar tidak double render
+const WheelPickerModal = dynamic(
+  () => import("./CreateTaskModal").then((mod) => mod.WheelPickerModal),
+  { ssr: false }
 );
+
+const FOCUS_TIME_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40];
+const BREAK_OPTIONS = [5, 10, 15, 20, 25, 30];
+const CYCLE_OPTIONS = [2, 3, 4, 5, 6, 7, 8];
+
+const DEFAULTS = {
+  focus: 25,
+  short: 5,
+  long: 15,
+  cycle: 4,
+};
+
+const Settings = () => {
+  const router = useRouter();
+  // State untuk value awal (simulasi fetch dari backend)
+  const [initial, setInitial] = useState(DEFAULTS);
+  // State untuk value yang sedang diedit
+  const [focus, setFocus] = useState(DEFAULTS.focus);
+  const [short, setShort] = useState(DEFAULTS.short);
+  const [long, setLong] = useState(DEFAULTS.long);
+  const [cycle, setCycle] = useState(DEFAULTS.cycle);
+  // Modal dropdown
+  const [dropdown, setDropdown] = useState<
+    null | "focus" | "short" | "long" | "cycle"
+  >(null);
+
+  // Simulasi fetch dari backend (bisa diganti nanti)
+  useEffect(() => {
+    // setTimeout(() => {
+    //   setInitial({ focus: 25, short: 5, long: 15, cycle: 4 });
+    //   setFocus(25); setShort(5); setLong(15); setCycle(4);
+    // }, 500);
+  }, []);
+
+  // Cek perubahan
+  const isChanged =
+    focus !== initial.focus ||
+    short !== initial.short ||
+    long !== initial.long ||
+    cycle !== initial.cycle;
+
+  // Handler
+  const handleCancel = () => {
+    setFocus(initial.focus);
+    setShort(initial.short);
+    setLong(initial.long);
+    setCycle(initial.cycle);
+  };
+  const handleSave = () => {
+    setInitial({ focus, short, long, cycle });
+    // TODO: Simpan ke backend nanti
+  };
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/signin");
+  };
+
+  return (
+    <div className="flex flex-col w-full h-full py-8">
+      <div className="w-full max-w-[430px] px-6 pb-4 flex flex-col items-center">
+        <div className="w-full flex justify-between items-center mb-8">
+          <h2 className="text-white text-[1.3rem] font-bold">Settings</h2>
+          <button
+            className="bg-[#7B61FF] text-white font-medium font-poppins rounded-full px-6 py-2 text-[12px] shadow"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+        </div>
+        {/* Field */}
+        <div className="w-full flex flex-col gap-6 mb-10">
+          <button
+            className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
+            onClick={() => setDropdown("focus")}
+          >
+            <span className="font-normal text-white text-[14px] font-poppins">
+              Focus time
+            </span>
+            <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
+              {focus} min
+              <img src="/arrow-down.svg" alt="arrow" width={20} height={20} />
+            </span>
+          </button>
+          <button
+            className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
+            onClick={() => setDropdown("short")}
+          >
+            <span className="font-normal text-white text-[14px] font-poppins">
+              Short break
+            </span>
+            <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
+              {short} min
+              <img src="/arrow-down.svg" alt="arrow" width={20} height={20} />
+            </span>
+          </button>
+          <button
+            className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
+            onClick={() => setDropdown("long")}
+          >
+            <span className="font-normal text-white text-[14px] font-poppins">
+              Long break
+            </span>
+            <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
+              {long} min
+              <img src="/arrow-down.svg" alt="arrow" width={20} height={20} />
+            </span>
+          </button>
+          <button
+            className="w-full flex items-center justify-between bg-[#232336] rounded-[32px] px-6 py-5 text-[14px] font-normal text-white focus:outline-none font-poppins"
+            onClick={() => setDropdown("cycle")}
+          >
+            <span className="font-normal text-white text-[14px] font-poppins">
+              Pomodoro cycle
+            </span>
+            <span className="flex items-center gap-2 text-white font-normal text-[14px] font-poppins">
+              {cycle} cycle
+              <img src="/arrow-down.svg" alt="arrow" width={20} height={20} />
+            </span>
+          </button>
+        </div>
+        {/* Tombol Cancel & Save */}
+        {isChanged && (
+          <div className="w-full flex justify-between items-center mt-6 gap-4">
+            <button
+              className="flex-1 py-4 rounded-full bg-transparent text-white font-semibold text-lg border-none"
+              onClick={handleCancel}
+            >
+              Cancel
+            </button>
+            <button
+              className="flex-1 py-4 rounded-full bg-[#7B61FF] text-white font-semibold text-lg shadow"
+              onClick={handleSave}
+            >
+              Save
+            </button>
+          </div>
+        )}
+      </div>
+      {/* Modal Dropdown */}
+      {dropdown === "focus" && (
+        <WheelPickerModal
+          title="Focus Time"
+          options={FOCUS_TIME_OPTIONS}
+          value={focus}
+          onSelect={setFocus}
+          onClose={() => setDropdown(null)}
+          formatOption={(v) => `${v} min`}
+        />
+      )}
+      {dropdown === "short" && (
+        <WheelPickerModal
+          title="Short Break"
+          options={BREAK_OPTIONS}
+          value={short}
+          onSelect={setShort}
+          onClose={() => setDropdown(null)}
+          formatOption={(v) => `${v} min`}
+        />
+      )}
+      {dropdown === "long" && (
+        <WheelPickerModal
+          title="Long Break"
+          options={BREAK_OPTIONS}
+          value={long}
+          onSelect={setLong}
+          onClose={() => setDropdown(null)}
+          formatOption={(v) => `${v} min`}
+        />
+      )}
+      {dropdown === "cycle" && (
+        <WheelPickerModal
+          title="Pomodoro Cycle"
+          options={CYCLE_OPTIONS}
+          value={cycle}
+          onSelect={setCycle}
+          onClose={() => setDropdown(null)}
+          formatOption={(v) => `${v} cycle`}
+        />
+      )}
+    </div>
+  );
+};
+
 export default Settings;
