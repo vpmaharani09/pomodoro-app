@@ -6,6 +6,10 @@ const FOCUS_TIME_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40];
 const CYCLE_OPTIONS = [2, 3, 4, 5, 6, 7, 8];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High"];
 
+// Default constants
+const DEFAULT_PRIORITY = "Medium";
+const DEFAULT_DUE_DATE = new Date();
+
 function ModalWrapper({
   children,
   onClose,
@@ -235,64 +239,86 @@ const CreateTaskModal = ({
   modalTitle?: string;
   onSaved?: () => void;
 }) => {
+  // Simpan default due date saat modal dibuka (untuk add mode)
+  const defaultDueDate = useRef<Date>(DEFAULT_DUE_DATE);
+  const [defaultFocusTime, setDefaultFocusTime] = useState(25);
+  const [defaultCycle, setDefaultCycle] = useState(4);
+
+  // Fetch settings saat modal add new dibuka
+  useEffect(() => {
+    if (!initialTask && open) {
+      const fetchSettings = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch("/api/settings", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setDefaultFocusTime(data.focus || 25);
+            setDefaultCycle(data.cycle || 4);
+          }
+        } catch {}
+      };
+      fetchSettings();
+    }
+  }, [initialTask, open]);
+
   const [taskName, setTaskName] = useState(initialTask?.name || "");
-  const [focusTime, setFocusTime] = useState(initialTask?.focusTime || 20);
-  const [cycle, setCycle] = useState(initialTask?.cycle || 3);
-  const [dueDate, setDueDate] = useState(
-    initialTask?.dueDate ? new Date(initialTask.dueDate) : new Date()
+  const [focusTime, setFocusTime] = useState(
+    initialTask?.focusTime || defaultFocusTime
   );
-  const [priority, setPriority] = useState(initialTask?.priority || "Medium");
+  const [cycle, setCycle] = useState(initialTask?.cycle || defaultCycle);
+  const [dueDate, setDueDate] = useState(
+    initialTask?.dueDate
+      ? new Date(initialTask.dueDate)
+      : defaultDueDate.current
+  );
+  const [priority, setPriority] = useState(
+    initialTask?.priority || DEFAULT_PRIORITY
+  );
   const [dropdown, setDropdown] = useState<
     null | "focus" | "cycle" | "priority" | "date"
   >(null);
   const [loadingSave, setLoadingSave] = useState(false);
 
-  // Simpan default due date saat modal dibuka (untuk add mode)
-  const defaultDueDate = useRef<Date>(new Date());
-  useEffect(() => {
-    if (!initialTask && open) {
-      defaultDueDate.current = new Date();
-    }
-  }, [initialTask, open]);
-
-  // Sync state when initialTask changes (for edit/detail mode)
+  // Reset state setiap kali modal dibuka (add new)
   useEffect(() => {
     if (initialTask) {
       setTaskName(initialTask.name || "");
-      setFocusTime(initialTask.focusTime || 20);
-      setCycle(initialTask.cycle || 3);
+      setFocusTime(initialTask.focusTime || defaultFocusTime);
+      setCycle(initialTask.cycle || defaultCycle);
       setDueDate(
-        initialTask.dueDate ? new Date(initialTask.dueDate) : new Date()
+        initialTask.dueDate
+          ? new Date(initialTask.dueDate)
+          : defaultDueDate.current
       );
-      setPriority(initialTask.priority || "Medium");
-    } else {
+      setPriority(initialTask.priority || DEFAULT_PRIORITY);
+    } else if (open) {
+      const now = new Date();
+      defaultDueDate.current = now;
       setTaskName("");
-      setFocusTime(20);
-      setCycle(3);
-      setDueDate(defaultDueDate.current);
-      setPriority("Medium");
+      setFocusTime(defaultFocusTime);
+      setCycle(defaultCycle);
+      setDueDate(now);
+      setPriority(DEFAULT_PRIORITY);
     }
-  }, [initialTask, open]);
+  }, [initialTask, open, defaultFocusTime, defaultCycle]);
 
   // Cek perubahan (dirty)
-  let isDirty = false;
-  if (initialTask) {
-    isDirty =
-      (initialTask.name || "") !== taskName ||
-      (initialTask.focusTime || 20) !== focusTime ||
-      (initialTask.cycle || 3) !== cycle ||
-      (initialTask.priority || "Medium") !== priority ||
+  const isDirty = initialTask
+    ? (initialTask.name || "") !== taskName ||
+      (initialTask.focusTime || defaultFocusTime) !== focusTime ||
+      (initialTask.cycle || defaultCycle) !== cycle ||
+      (initialTask.priority || DEFAULT_PRIORITY) !== priority ||
       (initialTask.dueDate
-        ? new Date(initialTask.dueDate).toDateString()
-        : "") !== dueDate.toDateString();
-  } else {
-    isDirty =
-      taskName !== "" ||
-      focusTime !== 20 ||
-      cycle !== 3 ||
-      priority !== "Medium" ||
-      dueDate.toDateString() !== defaultDueDate.current.toDateString();
-  }
+        ? new Date(initialTask.dueDate).toISOString()
+        : defaultDueDate.current.toISOString()) !== dueDate.toISOString()
+    : taskName !== "" ||
+      focusTime !== defaultFocusTime ||
+      cycle !== defaultCycle ||
+      priority !== DEFAULT_PRIORITY ||
+      dueDate.toISOString() !== defaultDueDate.current.toISOString();
 
   // Handler Save
   const handleSave = async () => {
@@ -410,7 +436,7 @@ const CreateTaskModal = ({
           </button>
         </div>
         <div className="w-full flex justify-between gap-4">
-          {(!initialTask || isDirty) && (
+          {isDirty && (
             <>
               <button
                 className="flex-1 py-3 rounded-full text-white font-semibold"

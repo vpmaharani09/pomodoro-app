@@ -105,7 +105,11 @@ export default function MainApp() {
     switch (activeMenu) {
       case "Pomodoro":
         return (
-          <PomoTimer activeTask={activeTask} setActiveTask={setActiveTask} />
+          <PomoTimer
+            activeTask={activeTask}
+            setActiveTask={setActiveTask}
+            setActiveMenu={setActiveMenu}
+          />
         );
       case "Manage":
         return (
