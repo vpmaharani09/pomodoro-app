@@ -100,20 +100,7 @@ export default function SignIn() {
           </button>
           {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
         </form>
-        <div className="flex items-center w-full max-w-[340px] my-4">
-          <div className="flex-1 h-px bg-[#E3E3E3]" />
-          <span className="mx-2 text-[#E3E3E3] text-sm">Or sign in with</span>
-          <div className="flex-1 h-px bg-[#E3E3E3]" />
-        </div>
-        <button className="flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-md mx-auto mb-4 overflow-hidden">
-          <Image
-            src="/login_google_icon.svg"
-            alt="Google"
-            width={28}
-            height={28}
-            style={{ objectFit: "cover" }}
-          />
-        </button>
+
         <p className="text-[#E3E3E3] text-sm text-center mt-2">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="text-[#7B61FF] font-semibold">

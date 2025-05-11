@@ -192,15 +192,20 @@ const PomoTimer = ({
     const savedTimestamp = localStorage.getItem("pomo_timer_timestamp");
     if (saved && savedState && savedTimestamp) {
       let restoredTimer = Number(saved);
-      if (savedState === "RUNNING_FOCUS" || savedState === "RUNNING_BREAK") {
-        const elapsed = Math.floor(
-          (Date.now() - Number(savedTimestamp)) / 1000
-        );
-        restoredTimer = Math.max(0, restoredTimer - elapsed);
-      }
+      // Only restore the timer value, but set state to INITIAL_FOCUS_TIME
       setTimer(restoredTimer);
-      setState(savedState as StateType);
+      setState("INITIAL_FOCUS_TIME");
     }
+  }, []);
+
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear timer state when leaving the page
+      localStorage.removeItem("pomo_timer_value");
+      localStorage.removeItem("pomo_timer_state");
+      localStorage.removeItem("pomo_timer_timestamp");
+    };
   }, []);
 
   // Simpan timer, state, dan timestamp ke localStorage setiap kali berubah
