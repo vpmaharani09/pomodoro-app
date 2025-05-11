@@ -26,6 +26,7 @@ export default function SignIn() {
       if (res.ok) {
         const data = await res.json();
         document.cookie = `token=${data.token}; path=/; max-age=604800`; // 7 hari
+        localStorage.setItem("token", data.token);
         router.push("/main-app");
       } else {
         const data = await res.json();

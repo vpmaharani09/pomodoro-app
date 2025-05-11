@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 const FOCUS_TIME_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40];
@@ -220,10 +220,12 @@ const CreateTaskModal = ({
   onClose,
   initialTask,
   modalTitle,
+  onSaved,
 }: {
   open: boolean;
   onClose: () => void;
   initialTask?: {
+    _id?: string;
     name: string;
     focusTime: number;
     cycle: number;
@@ -231,6 +233,7 @@ const CreateTaskModal = ({
     priority: string;
   } | null;
   modalTitle?: string;
+  onSaved?: () => void;
 }) => {
   const [taskName, setTaskName] = useState(initialTask?.name || "");
   const [focusTime, setFocusTime] = useState(initialTask?.focusTime || 20);
@@ -242,6 +245,15 @@ const CreateTaskModal = ({
   const [dropdown, setDropdown] = useState<
     null | "focus" | "cycle" | "priority" | "date"
   >(null);
+  const [loadingSave, setLoadingSave] = useState(false);
+
+  // Simpan default due date saat modal dibuka (untuk add mode)
+  const defaultDueDate = useRef<Date>(new Date());
+  useEffect(() => {
+    if (!initialTask && open) {
+      defaultDueDate.current = new Date();
+    }
+  }, [initialTask, open]);
 
   // Sync state when initialTask changes (for edit/detail mode)
   useEffect(() => {
@@ -257,10 +269,72 @@ const CreateTaskModal = ({
       setTaskName("");
       setFocusTime(20);
       setCycle(3);
-      setDueDate(new Date());
+      setDueDate(defaultDueDate.current);
       setPriority("Medium");
     }
   }, [initialTask, open]);
+
+  // Cek perubahan (dirty)
+  let isDirty = false;
+  if (initialTask) {
+    isDirty =
+      (initialTask.name || "") !== taskName ||
+      (initialTask.focusTime || 20) !== focusTime ||
+      (initialTask.cycle || 3) !== cycle ||
+      (initialTask.priority || "Medium") !== priority ||
+      (initialTask.dueDate
+        ? new Date(initialTask.dueDate).toDateString()
+        : "") !== dueDate.toDateString();
+  } else {
+    isDirty =
+      taskName !== "" ||
+      focusTime !== 20 ||
+      cycle !== 3 ||
+      priority !== "Medium" ||
+      dueDate.toDateString() !== defaultDueDate.current.toDateString();
+  }
+
+  // Handler Save
+  const handleSave = async () => {
+    setLoadingSave(true);
+    const token = localStorage.getItem("token");
+    const payload = {
+      name: taskName,
+      focusTime,
+      cycle,
+      dueDate,
+      priority,
+    };
+    try {
+      if (initialTask && initialTask._id) {
+        // Edit
+        await fetch(`/api/tasks/${initialTask._id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Add new
+        await fetch("/api/tasks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      }
+      if (onSaved) onSaved();
+      onClose();
+    } catch (e) {
+      alert("Failed to save task");
+    } finally {
+      setLoadingSave(false);
+    }
+  };
 
   if (!open) return null;
 
@@ -336,18 +410,49 @@ const CreateTaskModal = ({
           </button>
         </div>
         <div className="w-full flex justify-between gap-4">
-          <button
-            className="flex-1 py-3 rounded-full text-white font-semibold"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            className="flex-1 py-3 rounded-full bg-[#7B61FF] text-white font-semibold"
-            onClick={onClose}
-          >
-            Save
-          </button>
+          {(!initialTask || isDirty) && (
+            <>
+              <button
+                className="flex-1 py-3 rounded-full text-white font-semibold"
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-1 py-3 rounded-full bg-[#7B61FF] text-white font-semibold"
+                onClick={handleSave}
+                disabled={loadingSave}
+              >
+                {loadingSave ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                    Saving...
+                  </span>
+                ) : (
+                  "Save"
+                )}
+              </button>
+            </>
+          )}
         </div>
       </div>
       {dropdown === "focus" && (
