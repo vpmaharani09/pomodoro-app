@@ -1,34 +1,48 @@
 "use client";
-import { useState, useRef, useLayoutEffect } from "react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import Image from "next/image";
 
 const TABS = ["today", "yesterday", "weekly"];
 const TAB_LABELS = { today: "Today", yesterday: "Yesterday", weekly: "Weekly" };
 
-const WEEKLY_BARS = [2, 5, 1, 7, 4, 2, 6]; // dummy hours per day
-const HOURLY_BARS = [1, 2, 0, 3, 1, 2]; // dummy hours per 4-hour block
-const WEEKLY_TASKS = [2, 3, 1, 4, 2, 3, 5]; // dummy tasks per day
-
 const Report = () => {
   const [tab, setTab] = useState<"today" | "yesterday" | "weekly">("weekly");
+  const [summary, setSummary] = useState({ time: "0h", tasks: 0 });
+  const [bars, setBars] = useState<number[]>([]);
+  const [barLabels, setBarLabels] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Dummy summary data
-  const summary =
-    tab === "weekly" ? { time: "14h", tasks: 3 } : { time: "3h", tasks: 1 };
+  useEffect(() => {
+    const fetchReport = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/report?period=${tab}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to fetch report");
+        const data = await res.json();
+        setSummary({
+          time: `${data.productivityTime}h`,
+          tasks: data.totalTasks,
+        });
+        setBars(data.chartData);
+        setBarLabels(data.chartLabels);
+      } catch (e: any) {
+        setError(e.message || "Failed to fetch report");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReport();
+  }, [tab]);
 
-  // Bar chart data
-  const bars = tab === "weekly" ? WEEKLY_BARS : HOURLY_BARS;
   const maxBar = Math.max(...bars, 1);
-  const barLabels =
-    tab === "weekly"
-      ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-      : ["00-04", "04-08", "08-12", "12-16", "16-20", "20-24"];
 
   // Productivity average x-axis labels and title
-  const prodAvgLabels =
-    tab === "weekly"
-      ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-      : ["00-04", "04-08", "08-12", "12-16", "16-20", "20-24"];
+  const prodAvgLabels = barLabels;
   const prodAvgTitle =
     tab === "weekly"
       ? "Weekly Productivity Average"
@@ -96,14 +110,13 @@ const Report = () => {
               {tab === "weekly" ? "Weekly Focus Overview" : "Focus Overview"}
             </span>
           </div>
-          {/* Persentase dan range sejajar */}
           {tab === "weekly" && (
             <div className="flex items-center justify-between mb-4">
               <span className="text-[#232336] text-[32px] font-bold font-poppins">
-                +89%
+                {/* You can add a percentage or summary here if needed */}
               </span>
               <div className="flex items-center gap-2 border border-gray-200 text-black/70 rounded-full px-3 py-1 text-[12px] font-poppins">
-                1/1/2024 - 7/1/2024
+                {/* You can add a date range here if needed */}
               </div>
             </div>
           )}
@@ -136,12 +149,10 @@ const Report = () => {
             {prodAvgTitle}
           </span>
           <span className="text-[#232336] text-[32px] font-bold font-poppins block mb-2">
-            10 Tasks
+            {summary.tasks} Tasks
           </span>
           {/* Dynamic area line chart */}
-          <LineAreaChart
-            data={[2, 3, 5, 4, 6, 3, 7].slice(0, prodAvgLabels.length)}
-          />
+          <LineAreaChart data={bars} />
           <div className="flex justify-between mt-2 px-2">
             {prodAvgLabels.map((d) => (
               <span
@@ -155,6 +166,8 @@ const Report = () => {
             ))}
           </div>
         </div>
+        {loading && <div className="text-white">Loading...</div>}
+        {error && <div className="text-red-500">{error}</div>}
       </div>
     </div>
   );
@@ -174,6 +187,18 @@ function LineAreaChart({ data }: { data: number[] }) {
     ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, []);
+
+  if (!data || data.length === 0) {
+    return (
+      <div
+        ref={containerRef}
+        className="w-full h-[60px] flex items-center justify-center text-[#b3b3c5]"
+      >
+        No data
+      </div>
+    );
+  }
+
   const max = Math.max(...data, 1);
   const min = Math.min(...data, 0);
   const points = data.map((v, i) => {
